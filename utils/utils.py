@@ -44,13 +44,20 @@ class MP16Dataset(VisionDataset):
             print('no exist tar index success, need building...')
             self.tar_index = {}
             all_image_names = []
+            
+            # Build tar index and handle corrupted files
             for member in tqdm(self.tar_obj[worker]):
                 try:
                     if member.name.endswith('.jpg') and member.size > 5120:
                         self.tar_index[member.name.split('/')[2]] = member
                         all_image_names.append(member.name.split('/')[2])
                 except tarfile.ReadError as e:
-                    print(f"Skipping corrupted file: {member.name}")
+                    print(f"Error reading {member.name}: {e}, skipping file.")
+                    continue  # Skip corrupted or incomplete file
+                except Exception as e:
+                    print(f"Unexpected error with {member.name}: {e}, skipping file.")
+                    continue  # Handle other unforeseen errors
+
             print('tar index buidling success')
             with open(os.path.join(self.root_path, member_info_path), 'wb') as f:
                 pickle.dump(self.tar_index, f)
