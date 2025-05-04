@@ -31,7 +31,7 @@ def train_1epoch(dataloader, eval_dataloader, earlystopper, model, vision_proces
         optimizer.step()
         if i % 1 == 0:
             # t.set_description('step {}, loss {}, lr {}'.format(i, loss.item(), scheduler.get_last_lr()[0]))
-            print('step {}, loss {}, lr {}'.format(i, loss.item(), scheduler.get_last_lr()[0]))
+            print('step {}/{}, loss {}, lr {}'.format(i, len(dataloader), loss.item(), scheduler.get_last_lr()[0]))
     scheduler.step()
 
 
