@@ -14,7 +14,8 @@ warnings.filterwarnings('ignore')
 def train_1epoch(dataloader, eval_dataloader, earlystopper, model, vision_processor, text_processor, optimizer, scheduler, device, accelerator=None):
     model.train()
     # t = tqdm(dataloader, disable=not accelerator.is_local_main_process)
-    for i, (images, texts, longitude, latitude) in enumerate(t):
+    # for i, (images, texts, longitude, latitude) in enumerate(t):
+    for i, (images, texts, longitude, latitude) in enumerate(dataloader):
         texts = text_processor(text=texts, padding='max_length', truncation=True, return_tensors='pt', max_length=77)
         images = images.to(device)
         texts = texts.to(device)
