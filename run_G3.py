@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 
 def train_1epoch(dataloader, eval_dataloader, earlystopper, model, vision_processor, text_processor, optimizer, scheduler, device, accelerator=None):
     model.train()
-    t = tqdm(dataloader, disable=not accelerator.is_local_main_process)
+    # t = tqdm(dataloader, disable=not accelerator.is_local_main_process)
     for i, (images, texts, longitude, latitude) in enumerate(t):
         texts = text_processor(text=texts, padding='max_length', truncation=True, return_tensors='pt', max_length=77)
         images = images.to(device)
@@ -29,7 +29,7 @@ def train_1epoch(dataloader, eval_dataloader, earlystopper, model, vision_proces
         accelerator.backward(loss)
         optimizer.step()
         if i % 1 == 0:
-            t.set_description('step {}, loss {}, lr {}'.format(i, loss.item(), scheduler.get_last_lr()[0]))
+            # t.set_description('step {}, loss {}, lr {}'.format(i, loss.item(), scheduler.get_last_lr()[0]))
             print('step {}, loss {}, lr {}'.format(i, loss.item(), scheduler.get_last_lr()[0]))
     scheduler.step()
 
