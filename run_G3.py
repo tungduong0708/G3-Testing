@@ -31,7 +31,11 @@ def train_1epoch(dataloader, eval_dataloader, earlystopper, model, vision_proces
         optimizer.step()
         if i % 1 == 0:
             # t.set_description('step {}, loss {}, lr {}'.format(i, loss.item(), scheduler.get_last_lr()[0]))
-            print('step {}/{}, loss {}, lr {}'.format(i, len(dataloader), loss.item(), scheduler.get_last_lr()[0]))
+            allocated = torch.cuda.memory_allocated(device) / 1024**2  # in MB
+            reserved = torch.cuda.memory_reserved(device) / 1024**2    # in MB
+            print('step {}/{}, loss {:.4f}, lr {:.6f}, VRAM allocated: {:.2f} MB, reserved: {:.2f} MB'.format(
+                i, len(dataloader), loss.item(), scheduler.get_last_lr()[0], allocated, reserved
+            ))
     scheduler.step()
 
 
