@@ -46,7 +46,7 @@ def main():
     # fine-tune
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # device = 'cpu'
-    model = G3(device, projection="ecef").to(device)
+    model = G3(device, projection="mercator").to(device)
     # location_encoder_dict = torch.load('location_encoder.pth') # from geoclip
     # model.location_encoder.load_state_dict(location_encoder_dict)
 
