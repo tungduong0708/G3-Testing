@@ -51,7 +51,7 @@ class MP16Dataset(VisionDataset):
                     if member.name.endswith('.jpg') and member.size > 5120:
                         # self.tar_index[member.name.split('/')[2]] = member
                         self.tar_index[member.name] = member
-                        all_image_names.append(member.name.split('/')[2])
+                        all_image_names.append(member.name)
                 except tarfile.ReadError as e:
                     print(f"Error reading {member.name}: {e}, skipping file.")
                     continue  # Skip corrupted or incomplete file
