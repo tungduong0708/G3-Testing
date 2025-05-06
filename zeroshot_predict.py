@@ -22,8 +22,9 @@ def load_gps_data(csv_file):
     gps_tensor = torch.tensor(lat_lon.values, dtype=torch.float32)
     return gps_tensor
 
-class ZeroShotPredictor:
+class ZeroShotPredictor(nn.Module):
     def __init__(self, model_path, device='cuda', queue_size=4096):
+        super().__init__()
         self.model = torch.load(model_path, map_location=device)
         self.model.requires_grad_(False)
 
@@ -38,8 +39,7 @@ class ZeroShotPredictor:
         self.gps_queue = nn.functional.normalize(self.gps_queue, dim=0)
         self.register_buffer("gps_queue_ptr", torch.zeros(1, dtype=torch.long))
     
-    def forward(self, image, location):
-
+    def forward(self, image_embeds, location_embeds):
         image_embeds = self.model.vision_projection_else(image_embeds)
         location_embeds = self.model.location_projection_else(location_embeds.reshape(location_embeds.shape[0], -1))
 
@@ -96,7 +96,7 @@ class ZeroShotPredictor:
         self.model.eval()
 
         # Prepare dataset and dataloader
-        dataset = im2gps3kDataset(vision_processor=self.image_encoder.preprocess_image, text_processor=None)
+        dataset = im2gps3kDataset(vision_processor=self.model.vision_processor, text_processor=None)
         dataloader = DataLoader(
             dataset, batch_size=256, shuffle=False, num_workers=16,
             pin_memory=True, prefetch_factor=5
