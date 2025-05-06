@@ -151,7 +151,7 @@ class ZeroShotPredictor(nn.Module):
         # Concatenate results for the entire dataset
         all_topk_gps = torch.cat(all_topk_gps, dim=0)     # [Total_Images, k, 768*3]
         all_topk_probs = torch.cat(all_topk_probs, dim=0) # [Total_Images, k]
-
+        print(all_topk_gps)
         return all_topk_gps, all_topk_probs
 
 def evaluate_dataset_from_prediction(model, df_path, all_topk_gps, all_topk_probs, device='cuda:0'):
