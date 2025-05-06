@@ -92,11 +92,11 @@ class ZeroShotPredictor(nn.Module):
 
         return top_pred_gps, top_pred_prob
     
-    def predict_dataset(self, top_k):
+    def predict_im2gps3k_dataset(self, top_k):
         self.model.eval()
 
         # Prepare dataset and dataloader
-        dataset = im2gps3kDataset(vision_processor=self.model.vision_processor, text_processor=None)
+        dataset = im2gps3kDataset(vision_processor=self.model.vision_processor, text_processor=None, root_path='/kaggle/input/im2gps3k', image_data_path='im2gps3ktest')
         dataloader = DataLoader(
             dataset, batch_size=256, shuffle=False, num_workers=16,
             pin_memory=True, prefetch_factor=5
@@ -228,7 +228,7 @@ def main():
 
     print("Starting prediction on im2gps3k dataset...")
     # Get predictions for the entire dataset
-    all_topk_gps, all_topk_probs = predictor.predict_dataset(top_k)
+    all_topk_gps, all_topk_probs = predictor.predict_im2gps3k_dataset(top_k)
 
     print("Starting evaluation...")
     # Evaluate predictions
