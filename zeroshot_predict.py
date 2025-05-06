@@ -246,13 +246,13 @@ def main():
     # Set parameters
     top_k = 5  # Number of top predictions to return
     im2gps3k_path = './data/im2gps3k/im2gps3k_places365.csv'  # Path to im2gps3k dataset
-    gps_gallery = torch.load('gps_gallery.pth')  # Assuming GPS gallery is pre-saved
 
     print("Starting prediction on im2gps3k dataset...")
     # Get predictions and evaluate
-    results_df = predictor.predict_and_evaluate_im2gps3k(
+    results_df = predictor.evaluate_im2gps3k(
+        model=predictor.model,
         df_path=im2gps3k_path,
-        gps_gallery=gps_gallery,
+        gps_gallery=predictor.gps_gallery,
         top_k=top_k,
         device=predictor.device
     )
@@ -262,6 +262,6 @@ def main():
     results_path = f'results_im2gps3k_{timestamp}.csv'
     results_df.to_csv(results_path, index=False)
     print(f"Results saved to {results_path}")
-    
+
 if __name__ == "__main__":
     main()
