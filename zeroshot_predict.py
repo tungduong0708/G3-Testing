@@ -39,22 +39,41 @@ class ZeroShotPredictor(nn.Module):
         self.gps_queue = nn.functional.normalize(self.gps_queue, dim=0)
         self.register_buffer("gps_queue_ptr", torch.zeros(1, dtype=torch.long))
     
+    # def forward(self, image, location):
+    #     image_embeds = self.model.vision_projection_else_2(self.model.vision_projection(self.model.vision_model(image)[1]))
+    #     image_embeds = image_embeds / image_embeds.norm(p=2, dim=-1, keepdim=True) # b, 768
+
+    #     b, c, _ = location.shape
+    #     location = location.reshape(b*c, 2)
+    #     location_embeds = self.model.location_encoder(location)
+    #     location_embeds = self.model.location_projection_else(location_embeds.reshape(b*c, -1))
+    #     location_embeds = location_embeds / location_embeds.norm(p=2, dim=-1, keepdim=True)
+    #     location_embeds = location_embeds.reshape(b, c, -1) #  b, c, 768
+
+    #     # image with location
+    #     logit_scale = self.model.logit_scale2.exp()
+    #     logits_per_image = torch.matmul(image_embeds, location_embeds.t()) * logit_scale
+
+    #     return logits_per_image
+
     def forward(self, image, location):
-        image_embeds = self.model.vision_projection_else_2(self.model.vision_projection(self.model.vision_model(image)[1]))
-        image_embeds = image_embeds / image_embeds.norm(p=2, dim=-1, keepdim=True) # b, 768
+        # image: [B, C, H, W]
+        # location: [N, 768*3] or [N, 2] depending on where it is used
 
-        b, c, _ = location.shape
-        location = location.reshape(b*c, 2)
-        location_embeds = self.model.location_encoder(location)
-        location_embeds = self.model.location_projection_else(location_embeds.reshape(b*c, -1))
-        location_embeds = location_embeds / location_embeds.norm(p=2, dim=-1, keepdim=True)
-        location_embeds = location_embeds.reshape(b, c, -1) #  b, c, 768
+        # Compute image embeddings
+        vision_output = self.model.vision_model(image)[1]  # e.g., [B, 768]
+        image_embeds = self.model.vision_projection(vision_output)
+        image_embeds = self.model.vision_projection_else_2(image_embeds)  # [B, 768]
+        image_embeds = image_embeds / image_embeds.norm(p=2, dim=-1, keepdim=True)  # Normalize
 
-        # image with location
+        # location: [N, 768*3] (precomputed gallery embeddings)
+        location_embeds = location / location.norm(p=2, dim=-1, keepdim=True)  # [N, 768]
+
+        # Compute similarity: [B, 768] x [768, N] -> [B, N]
         logit_scale = self.model.logit_scale2.exp()
         logits_per_image = torch.matmul(image_embeds, location_embeds.t()) * logit_scale
 
-        return logits_per_image
+        return logits_per_image  # [B, N]
     
 
     def predict_image(self, image_path, top_k):
@@ -112,13 +131,10 @@ class ZeroShotPredictor(nn.Module):
         print('Generating embeddings and computing top-k predictions...')
         for images, _, _, _ in tqdm(dataloader):
             images = images.to(self.device)
-            print(f"Processing batch of size {images.shape[0]}")
 
             with torch.no_grad():
-                
-
                 # Compute similarity (logits) and top-k
-                logits_per_image = self.forward(full_embed, gps_gallery)  # [B, N]
+                logits_per_image = self.forward(images, gps_gallery)  # [B, N]
                 probs_per_image = logits_per_image.softmax(dim=-1).cpu()  # [B, N]
 
                 top_preds = torch.topk(probs_per_image, top_k, dim=1)  # values: [B, k], indices: [B, k]
