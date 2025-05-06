@@ -39,13 +39,16 @@ class ZeroShotPredictor(nn.Module):
         self.gps_queue = nn.functional.normalize(self.gps_queue, dim=0)
         self.register_buffer("gps_queue_ptr", torch.zeros(1, dtype=torch.long))
     
-    def forward(self, image_embeds, location_embeds):
-        image_embeds = self.model.vision_projection_else(image_embeds)
-        location_embeds = self.model.location_projection_else(location_embeds.reshape(location_embeds.shape[0], -1))
+    def forward(self, image, location):
+        image_embeds = self.model.vision_projection_else_2(self.model.vision_projection(self.model.vision_model(image)[1]))
+        image_embeds = image_embeds / image_embeds.norm(p=2, dim=-1, keepdim=True) # b, 768
 
-        # normalized features
-        image_embeds = image_embeds / image_embeds.norm(p=2, dim=-1, keepdim=True)
+        b, c, _ = location.shape
+        location = location.reshape(b*c, 2)
+        location_embeds = self.model.location_encoder(location)
+        location_embeds = self.model.location_projection_else(location_embeds.reshape(b*c, -1))
         location_embeds = location_embeds / location_embeds.norm(p=2, dim=-1, keepdim=True)
+        location_embeds = location_embeds.reshape(b, c, -1) #  b, c, 768
 
         # image with location
         logit_scale = self.model.logit_scale2.exp()
@@ -109,22 +112,10 @@ class ZeroShotPredictor(nn.Module):
         print('Generating embeddings and computing top-k predictions...')
         for images, _, _, _ in tqdm(dataloader):
             images = images.to(self.device)
+            print(f"Processing batch of size {images.shape[0]}")
 
             with torch.no_grad():
-                # Base vision model output
-                vision_output = self.model.vision_model(images)[1]
-                image_embed = self.model.vision_projection(vision_output)
-                image_embed = image_embed / image_embed.norm(p=2, dim=-1, keepdim=True)
-
-                # Three-way projections
-                image_text_embed = self.model.vision_projection_else_1(image_embed)
-                image_text_embed = image_text_embed / image_text_embed.norm(p=2, dim=-1, keepdim=True)
-
-                image_location_embed = self.model.vision_projection_else_2(image_embed)
-                image_location_embed = image_location_embed / image_location_embed.norm(p=2, dim=-1, keepdim=True)
-
-                # Concatenate embeddings [B, 768*3]
-                full_embed = torch.cat([image_embed, image_text_embed, image_location_embed], dim=1)
+                
 
                 # Compute similarity (logits) and top-k
                 logits_per_image = self.forward(full_embed, gps_gallery)  # [B, N]
