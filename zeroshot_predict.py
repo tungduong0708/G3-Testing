@@ -155,85 +155,85 @@ class ZeroShotPredictor(nn.Module):
         return all_topk_gps, all_topk_probs
 
 
-    def evaluate_im2gps3k(model, df_path, gps_gallery, top_k=5, device='cuda:0'):
-        """
-        Combines prediction and evaluation for im2gps3k dataset using top-k GPS candidates.
-        
-        Args:
-            model: The trained model with a .forward() method and .location_encoder.
-            df_path: Path to CSV containing ground truth columns ['LAT', 'LON'].
-            gps_gallery: Tensor of GPS embeddings [N, 768*3].
-            top_k: Number of top predictions to consider.
-            device: CUDA device identifier.
-        
-        Returns:
-            DataFrame with predicted coordinates and geodesic distances.
-        """
-        print("Start prediction and evaluation...")
-        model.eval()
+def evaluate_im2gps3k(model, df_path, gps_gallery, top_k=5, device='cuda:0'):
+    """
+    Combines prediction and evaluation for im2gps3k dataset using top-k GPS candidates.
+    
+    Args:
+        model: The trained model with a .forward() method and .location_encoder.
+        df_path: Path to CSV containing ground truth columns ['LAT', 'LON'].
+        gps_gallery: Tensor of GPS embeddings [N, 768*3].
+        top_k: Number of top predictions to consider.
+        device: CUDA device identifier.
+    
+    Returns:
+        DataFrame with predicted coordinates and geodesic distances.
+    """
+    print("Start prediction and evaluation...")
+    model.eval()
 
-        # Prepare dataset and dataloader
-        dataset = im2gps3kDataset(
-            vision_processor=model.vision_processor,
-            text_processor=None,
-            root_path='/kaggle/input/im2gps3k',
-            image_data_path='im2gps3ktest'
-        )
-        dataloader = DataLoader(
-            dataset, batch_size=256, shuffle=False, num_workers=4,
-            pin_memory=True, prefetch_factor=5
-        )
+    # Prepare dataset and dataloader
+    dataset = im2gps3kDataset(
+        vision_processor=model.vision_processor,
+        text_processor=None,
+        root_path='/kaggle/input/im2gps3k',
+        image_data_path='im2gps3ktest'
+    )
+    dataloader = DataLoader(
+        dataset, batch_size=256, shuffle=False, num_workers=4,
+        pin_memory=True, prefetch_factor=5
+    )
 
-        gps_gallery = gps_gallery.to(device)
-        all_topk_gps = []
-        all_topk_probs = []
+    gps_gallery = gps_gallery.to(device)
+    all_topk_gps = []
+    all_topk_probs = []
 
-        print("Generating top-k predictions...")
-        for images, _, _, _ in tqdm(dataloader):
-            images = images.to(device)
+    print("Generating top-k predictions...")
+    for images, _, _, _ in tqdm(dataloader):
+        images = images.to(device)
 
-            with torch.no_grad():
-                logits = model.forward(images, gps_gallery)  # [B, N]
-                probs = logits.softmax(dim=-1).cpu()         # [B, N]
-                top_preds = torch.topk(probs, top_k, dim=1)
+        with torch.no_grad():
+            logits = model.forward(images, gps_gallery)  # [B, N]
+            probs = logits.softmax(dim=-1).cpu()         # [B, N]
+            top_preds = torch.topk(probs, top_k, dim=1)
 
-                batch_topk_gps = gps_gallery[top_preds.indices]  # [B, k, 768*3]
-                batch_topk_probs = top_preds.values              # [B, k]
+            batch_topk_gps = gps_gallery[top_preds.indices]  # [B, k, 768*3]
+            batch_topk_probs = top_preds.values              # [B, k]
 
-                all_topk_gps.append(batch_topk_gps)
-                all_topk_probs.append(batch_topk_probs)
+            all_topk_gps.append(batch_topk_gps)
+            all_topk_probs.append(batch_topk_probs)
 
-        all_topk_gps = torch.cat(all_topk_gps, dim=0)     # [Total_Images, k, 768*3]
-        all_topk_probs = torch.cat(all_topk_probs, dim=0) # [Total_Images, k]
+    all_topk_gps = torch.cat(all_topk_gps, dim=0)     # [Total_Images, k, 768*3]
+    all_topk_probs = torch.cat(all_topk_probs, dim=0) # [Total_Images, k]
 
-        # No need to decode coordinates, directly use top-k GPS
-        max_indices = torch.argmax(all_topk_probs, dim=1)  # [N]
+    # No need to decode coordinates, directly use top-k GPS
+    max_indices = torch.argmax(all_topk_probs, dim=1)  # [N]
 
-        final_lat_lons = []
-        for i in range(len(max_indices)):
-            # Select the GPS coordinates corresponding to the max probability
-            lat, lon = all_topk_gps[i, max_indices[i]]
-            lat = lat.item()
-            lon = lon.item()
-            if lat < -90 or lat > 90:
-                lat = 0
-            if lon < -180 or lon > 180:
-                lon = 0
-            final_lat_lons.append((lat, lon))
+    final_lat_lons = []
+    for i in range(len(max_indices)):
+        # Select the GPS coordinates corresponding to the max probability
+        lat, lon = all_topk_gps[i, max_indices[i]]
+        lat = lat.item()
+        lon = lon.item()
+        if lat < -90 or lat > 90:
+            lat = 0
+        if lon < -180 or lon > 180:
+            lon = 0
+        final_lat_lons.append((lat, lon))
 
-        # Evaluation
-        df = pd.read_csv(df_path)
-        df['LAT_pred'] = [lat for lat, _ in final_lat_lons]
-        df['LON_pred'] = [lon for _, lon in final_lat_lons]
-        df['geodesic'] = df.apply(lambda x: geodesic((x['LAT'], x['LON']), (x['LAT_pred'], x['LON_pred'])).km, axis=1)
+    # Evaluation
+    df = pd.read_csv(df_path)
+    df['LAT_pred'] = [lat for lat, _ in final_lat_lons]
+    df['LON_pred'] = [lon for _, lon in final_lat_lons]
+    df['geodesic'] = df.apply(lambda x: geodesic((x['LAT'], x['LON']), (x['LAT_pred'], x['LON_pred'])).km, axis=1)
 
-        print(df.head())
+    print(df.head())
 
-        for threshold in [2500, 750, 200, 25, 1]:
-            acc = (df['geodesic'] < threshold).mean()
-            print(f'{threshold}km level: {acc:.4f}')
+    for threshold in [2500, 750, 200, 25, 1]:
+        acc = (df['geodesic'] < threshold).mean()
+        print(f'{threshold}km level: {acc:.4f}')
 
-        return df
+    return df
 
 
 def main():
@@ -249,7 +249,7 @@ def main():
 
     print("Starting prediction on im2gps3k dataset...")
     # Get predictions and evaluate
-    results_df = predictor.evaluate_im2gps3k(
+    results_df = evaluate_im2gps3k(
         model=predictor.model,
         df_path=im2gps3k_path,
         gps_gallery=predictor.gps_gallery,
