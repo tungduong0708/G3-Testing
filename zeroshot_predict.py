@@ -23,7 +23,7 @@ def load_gps_data(csv_file):
     return gps_tensor
 
 class ZeroShotPredictor:
-    def __init__(self, model_path, index_path, image_processor, device='cuda', queue_size=4096):
+    def __init__(self, model_path, device='cuda', queue_size=4096):
         self.model = torch.load(model_path, map_location=device)
         self.model.requires_grad_(False)
 
@@ -144,3 +144,107 @@ class ZeroShotPredictor:
         all_topk_probs = torch.cat(all_topk_probs, dim=0) # [Total_Images, k]
 
         return all_topk_gps, all_topk_probs
+
+def evaluate_dataset_from_prediction(model, df_path, all_topk_gps, all_topk_probs, device='cuda:0'):
+    """
+    Evaluate predictions using geodesic error.
+    
+    Parameters:
+        model: the trained model with location encoder
+        df_path: pd.DataFrame with ground truth columns ['LAT', 'LON']
+        database: pd.DataFrame containing location reference data (not directly used here)
+        all_topk_gps: torch.Tensor of shape [N, top_k, 768*3]
+        all_topk_probs: torch.Tensor of shape [N, top_k]
+        device: CUDA device
+    """
+    print("Start evaluation...")
+
+    model.eval()
+    df = pd.read_csv(df_path)
+    # df = pd.read_csv('./data/im2gps3k/im2gps3k_places365.csv')
+
+    top_k = all_topk_gps.shape[1]
+    bsz = all_topk_gps.shape[0]
+
+    # Extract 2D coordinates from the 768*3 embeddings using the location encoder
+    all_lat_lons = []
+    for i in tqdm(range(0, bsz, 256)):
+        gps_batch = all_topk_gps[i:i+256].to(device)  # [B, k, 768*3]
+        b, k, d = gps_batch.shape
+        gps_batch = gps_batch.reshape(b * k, d)
+
+        with torch.no_grad():
+            gps_decoded = model.location_encoder(gps_batch)  # [b*k, 2]
+            gps_decoded = gps_decoded.reshape(b, k, 2)        # [b, k, 2]
+
+        all_lat_lons.append(gps_decoded.cpu())
+        print(f"Processed {i} to {i+256} images.")
+
+    all_lat_lons = torch.cat(all_lat_lons, dim=0)  # [N, k, 2]
+
+    # Choose the prediction with the highest probability
+    max_indices = torch.argmax(all_topk_probs, dim=1)  # [N]
+    final_lat_lons = []
+    for i in range(bsz):
+        lat, lon = all_lat_lons[i, max_indices[i]]
+        # Clamp invalid predictions
+        lat = lat.item()
+        lon = lon.item()
+        if lat < -90 or lat > 90:
+            lat = 0
+        if lon < -180 or lon > 180:
+            lon = 0
+        final_lat_lons.append((lat, lon))
+
+    # Update dataframe
+    df['LAT_pred'] = [lat for lat, _ in final_lat_lons]
+    df['LON_pred'] = [lon for _, lon in final_lat_lons]
+
+    # Compute geodesic distance in km
+    df['geodesic'] = df.apply(lambda x: geodesic((x['LAT'], x['LON']), (x['LAT_pred'], x['LON_pred'])).km, axis=1)
+
+    # Save and print results
+    print(df.head())
+
+    print('2500km level: ', (df['geodesic'] < 2500).mean())
+    print('750km level: ', (df['geodesic'] < 750).mean())
+    print('200km level: ', (df['geodesic'] < 200).mean())
+    print('25km level: ', (df['geodesic'] < 25).mean())
+    print('1km level: ', (df['geodesic'] < 1).mean())
+
+    return df
+
+
+def main():
+    # Initialize predictor
+    predictor = ZeroShotPredictor(
+        model_path='g3_9_.pth',  # Path to your model
+        device='cuda' if torch.cuda.is_available() else 'cpu'
+    )
+
+    # Set parameters
+    top_k = 5  # Number of top predictions to return
+    im2gps3k_path = './data/im2gps3k/im2gps3k_places365.csv'  # Path to im2gps3k dataset
+
+    print("Starting prediction on im2gps3k dataset...")
+    # Get predictions for the entire dataset
+    all_topk_gps, all_topk_probs = predictor.predict_dataset(top_k)
+
+    print("Starting evaluation...")
+    # Evaluate predictions
+    results_df = evaluate_dataset_from_prediction(
+        model=predictor.model,
+        df_path=im2gps3k_path,
+        all_topk_gps=all_topk_gps,
+        all_topk_probs=all_topk_probs,
+        device=predictor.device
+    )
+
+    # Save results
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_path = f'results_im2gps3k_{timestamp}.csv'
+    results_df.to_csv(results_path, index=False)
+    print(f"Results saved to {results_path}")
+
+if __name__ == "__main__":
+    main()
