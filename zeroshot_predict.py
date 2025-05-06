@@ -66,8 +66,10 @@ class ZeroShotPredictor(nn.Module):
         image_embeds = self.model.vision_projection_else_2(image_embeds)  # [B, 768]
         image_embeds = image_embeds / image_embeds.norm(p=2, dim=-1, keepdim=True)  # Normalize
 
-        # location: [N, 768*3] (precomputed gallery embeddings)
-        location_embeds = location / location.norm(p=2, dim=-1, keepdim=True)  # [N, 768]
+        # Process GPS coordinates
+        location_embeds = self.model.location_encoder(location)                # [N, F]
+        location_embeds = self.model.location_projection_else(location_embeds) # [N, 768]
+        location_embeds = location_embeds / location_embeds.norm(p=2, dim=-1, keepdim=True)
 
         # Compute similarity: [B, 768] x [768, N] -> [B, N]
         logit_scale = self.model.logit_scale2.exp()
@@ -120,7 +122,7 @@ class ZeroShotPredictor(nn.Module):
         # Prepare dataset and dataloader
         dataset = im2gps3kDataset(vision_processor=self.model.vision_processor, text_processor=None, root_path='/kaggle/input/im2gps3k', image_data_path='im2gps3ktest')
         dataloader = DataLoader(
-            dataset, batch_size=256, shuffle=False, num_workers=16,
+            dataset, batch_size=256, shuffle=False, num_workers=4,
             pin_memory=True, prefetch_factor=5
         )
 
