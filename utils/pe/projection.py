@@ -42,7 +42,7 @@ class Projection(nn.Module):
 
         # Shape: (batch, 2) or (batch, 3) depending on projection
         if self.projection == "ecef":
-            alt = 0
+            alt = np.zeros_like(lat)
             projected = self.transformer.transform(lon, lat, alt)
             location = list(zip(*projected))  # X, Y, Z
             location = torch.Tensor(location).to(input.device)
