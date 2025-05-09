@@ -2,8 +2,10 @@ from torch import nn
 import torch
 import numpy as np
 
-import utils.pe as PE
-import utils.nn as NN
+from utils.pe.projection_rff import ProjectionRFF
+from utils.pe.spherical_harmonics import SphericalHarmonics
+from utils.nn.mlp import MLP
+from utils.nn.siren import SirenNet
 
 def get_positional_encoding(positional_encoding_type, **kwargs):
     """
@@ -19,9 +21,9 @@ def get_positional_encoding(positional_encoding_type, **kwargs):
         nn.Module: The positional encoding module.
     """
     if positional_encoding_type == "rff":
-        return PE.ProjectionRFF(**kwargs)
+        return ProjectionRFF(**kwargs)
     elif positional_encoding_type == "sh":
-        return PE.SphericalHarmonics(**kwargs)
+        return SphericalHarmonics(**kwargs)
     else:
         raise ValueError(f"Unsupported encoding type: {positional_encoding_type}")
     
@@ -39,12 +41,12 @@ def get_neural_network(neural_network_type, input_dim, **kwargs):
         nn.Module: The neural network module.
     """
     if neural_network_type == "siren":
-        return NN.SirenNet(
+        return SirenNet(
             input_dim=input_dim,
             **kwargs
         )
     elif neural_network_type == "mlp":
-        return NN.MLP(
+        return MLP(
             input_dim=input_dim, 
             **kwargs
         )
