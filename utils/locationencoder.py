@@ -2,8 +2,8 @@ from torch import nn
 import torch
 import numpy as np
 
-import pe as PE
-import nn as NN
+import utils.pe as PE
+import utils.nn as NN
 
 def get_positional_encoding(positional_encoding_type, **kwargs):
     """
