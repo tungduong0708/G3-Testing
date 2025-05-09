@@ -56,7 +56,6 @@ class ProjectionRFF(nn.Module):
             location = torch.Tensor(location)
 
         location = location / self.normalizer
-        # location_features = torch.zeros(location.shape[0], 512).to(input.device)
         out = [] 
 
         for i in range(self.num_hierarchies):

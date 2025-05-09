@@ -70,6 +70,7 @@ class LocationEncoder(nn.Module):
         ])
 
     def forward(self, x):
+        print(f"Input type: {type(x)}, shape: {x.shape if isinstance(x, torch.Tensor) else None}")
         embedding = self.position_encoder(x)
         
         if embedding.ndim == 2:
