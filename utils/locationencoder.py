@@ -80,5 +80,5 @@ class LocationEncoder(nn.Module):
 
         for nn, e in zip(self.neural_network, embedding):
             location_features += nn(e)
-
+        print(location_features.shape)
         return location_features

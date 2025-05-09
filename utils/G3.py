@@ -152,6 +152,8 @@ class G3(torch.nn.Module):
         loss_phase_2 = None
         if return_loss: loss_phase_2 = self.clip_loss(logits_per_locations_with_images)
 
+        print(loss_phase_1.shape, loss_phase_2.shape)
+
         loss = loss_phase_1 + loss_phase_2
 
         return {
