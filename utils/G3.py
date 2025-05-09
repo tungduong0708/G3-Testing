@@ -83,7 +83,7 @@ from pyproj import Proj, Transformer
 
 
 class G3(torch.nn.Module):
-    def __init__(self, device, projection="mercator"):
+    def __init__(self, device):
         super(G3, self).__init__()
         self.device = device
 
@@ -99,7 +99,7 @@ class G3(torch.nn.Module):
         self.logit_scale2 = nn.Parameter(torch.tensor(3.99))
         self.logit_scale3 = nn.Parameter(torch.tensor(3.99))
 
-        self.location_encoder = LocationEncoder(projection=projection) # output batch_size, 3, 512
+        self.location_encoder = LocationEncoder() # output batch_size, 3, 512
         #self.location_encoder = LocationEncoder(sigma=[2**0, 2**4, 2**8])
         self.vision_projection_else_1 = nn.Sequential(nn.Linear(768, 768), nn.ReLU(), nn.Linear(768, 768))
         self.text_projection_else = nn.Sequential(nn.Linear(768,768), nn.ReLU(), nn.Linear(768, 768))
