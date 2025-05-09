@@ -11,12 +11,13 @@ from pyproj import Proj, Transformer
 SF = 66.50336
 
 class ProjectionRFF(nn.Module):
-    def __init__(self, sigma=[2**0, 2**4, 2**8], projection="mercator"):
+    def __init__(self, projection="mercator", sigma=[2**0, 2**4, 2**8]):
         super(ProjectionRFF, self).__init__()
 
         self.sigma = sigma
-        self.n = len(self.sigma)
+        self.num_hierarchies = len(self.sigma)
         self.projection = projection.lower()
+        self.embedding_dim = [512] * self.num_hierarchies
 
         for i, s in enumerate(self.sigma):
             self.add_module('LocEnc' + str(i), GaussianEncoding(sigma=s, input_size=2, encoded_size=256))
@@ -40,9 +41,11 @@ class ProjectionRFF(nn.Module):
     def forward(self, input):
         lat = input[:, 0].float().detach().cpu().numpy()
         lon = input[:, 1].float().detach().cpu().numpy()
+        # lon (batch), lat (batch)
+
         projected = self.transformer.transform(lon, lat)
 
-        # Shape: (N, 2) or (N, 3) depending on projection
+        # Shape: (batch, 2) or (batch, 3) depending on projection
         if self.projection == "ecef":
             location = list(zip(*projected))  # X, Y, Z
             location = torch.Tensor(location).to(input.device)
@@ -51,9 +54,10 @@ class ProjectionRFF(nn.Module):
             location = torch.Tensor(location).to(input.device)
 
         location = location / self.normalizer
-        location_features = torch.zeros(location.shape[0], 512).to(input.device)
+        # location_features = torch.zeros(location.shape[0], 512).to(input.device)
+        location_features = [] # (hierarchies, batch, 512)
 
-        for i in range(self.n):
-            location_features += self._modules['LocEnc' + str(i)](location)
+        for i in range(self.num_hierarchies):
+            location_features.append(self._modules['LocEnc' + str(i)](location))
 
         return location_features

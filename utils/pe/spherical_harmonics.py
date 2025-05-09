@@ -14,7 +14,7 @@ class SphericalHarmonics(nn.Module):
         """
         super(SphericalHarmonics, self).__init__()
         self.L, self.M = int(legendre_polys), int(legendre_polys)
-        self.embedding_dim = self.L * self.M
+        self.embedding_dim = [self.L * self.M]
 
         if harmonics_calculation == "closed-form":
             self.SH = SH_closed_form
@@ -22,13 +22,13 @@ class SphericalHarmonics(nn.Module):
             self.SH = SH_analytic
 
     def forward(self, lonlat):
-        lon, lat = lonlat[:, 0], lonlat[:, 1]
+        lon, lat = lonlat[:, 0], lonlat[:, 1] # lon: (batch), lat: (batch)
 
         # convert degree to rad
         phi = torch.deg2rad(lon + 180)
         theta = torch.deg2rad(lat + 90)
 
-        Y = []
+        Y = [] # (L * L, batch)
         for l in range(self.L):
             for m in range(-l, l + 1):
                 y = self.SH(m, l, phi, theta)
@@ -36,4 +36,4 @@ class SphericalHarmonics(nn.Module):
                     y = y * torch.ones_like(phi)
                 Y.append(y)
 
-        return torch.stack(Y,dim=-1)
+        return torch.stack(Y,dim=-1) # (batch, L * L)
