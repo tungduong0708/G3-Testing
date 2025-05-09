@@ -39,7 +39,6 @@ class ProjectionRFF(nn.Module):
         self.transformer = Transformer.from_proj(proj_wgs84, proj_target, always_xy=True)
 
     def forward(self, input):
-        print(input.device)
         lat = input[:, 0].float().detach().cpu().numpy()
         lon = input[:, 1].float().detach().cpu().numpy()
         # lon (batch), lat (batch)
@@ -49,12 +48,12 @@ class ProjectionRFF(nn.Module):
         # Shape: (batch, 2) or (batch, 3) depending on projection
         if self.projection == "ecef":
             location = list(zip(*projected))  # X, Y, Z
-            # location = torch.Tensor(location).to(input.device)
-            location = torch.Tensor(location)
+            location = torch.Tensor(location).to(input.device)
+            # location = torch.Tensor(location)
         else:
             location = [[y, x] for x, y in zip(*projected)]
-            # location = torch.Tensor(location).to(input.device)
-            location = torch.Tensor(location)
+            location = torch.Tensor(location).to(input.device)
+            # location = torch.Tensor(location)
 
         location = location / self.normalizer
         out = [] 
