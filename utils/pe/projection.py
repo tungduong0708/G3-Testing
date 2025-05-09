@@ -20,15 +20,15 @@ class Projection(nn.Module):
         if self.projection == "mercator":
             proj_target = Proj('epsg:3857')
             self.normalizer = 20037508.3427892
-            self.embedding_dim =  2
+            self.embedding_dim =  [2]
         elif self.projection == "eep":
             proj_target = Proj('epsg:8857')
             self.normalizer = 180/SF 
-            self.embedding_dim =  2
+            self.embedding_dim =  [2]
         elif self.projection == "ecef":
             proj_target = Proj('epsg:4978')
             self.normalizer = 6378137.0  # radius of Earth, not exact for ECEF but usable
-            self.embedding_dim =  3
+            self.embedding_dim =  [3]
         else:
             raise ValueError(f"Unsupported projection: {self.projection}")
 
