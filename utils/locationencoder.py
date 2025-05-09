@@ -55,7 +55,7 @@ def get_neural_network(neural_network_type, input_dim, **kwargs):
     
 
 class LocationEncoder(nn.Module):
-    def __init__(self, position_encoding_type="rff", neural_network_type="mlp", **kwargs):
+    def __init__(self, position_encoding_type="rff", neural_network_type="siren", **kwargs):
         super().__init__()
 
         self.position_encoder = get_positional_encoding(
@@ -80,5 +80,5 @@ class LocationEncoder(nn.Module):
 
         for nn, e in zip(self.neural_network, embedding):
             location_features += nn(e)
-        print(location_features.shape)
+
         return location_features
