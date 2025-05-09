@@ -5,7 +5,7 @@ from ..rff.layers import GaussianEncoding
 class LocationEncoderCapsule(nn.Module):
     def __init__(self, input_dim=2, hidden_dim=1024, output_dim=512, sigma=2**0):
         super(LocationEncoderCapsule, self).__init__()
-        rff_encoding = GaussianEncoding(sigma=sigma, input_size=input_dim, encoded_size=output_dim/2)
+        rff_encoding = GaussianEncoding(sigma=sigma, input_size=input_dim, encoded_size=int(output_dim/2))
         self.capsule = nn.Sequential(rff_encoding,
                                      nn.Linear(output_dim, hidden_dim),
                                      nn.ReLU(),
@@ -32,6 +32,6 @@ class RFFMLP(nn.Module):
     def forward(self, input):
         location_features = torch.zeros(input.shape[0], 512).to(input.device)
 
-        for i in range(self.n):
+        for i in range(self.num_hierarchies):
             location_features += self._modules['LocEnc' + str(i)](input)
         return location_features
