@@ -55,7 +55,7 @@ def get_neural_network(neural_network_type, input_dim, **kwargs):
     
 
 class LocationEncoder(nn.Module):
-    def __init__(self, position_encoding_type="sh", neural_network_type="siren", **kwargs):
+    def __init__(self, position_encoding_type="sh", neural_network_type="mlp", **kwargs):
         super().__init__()
 
         self.position_encoder = get_positional_encoding(
