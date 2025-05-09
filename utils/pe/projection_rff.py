@@ -59,5 +59,5 @@ class ProjectionRFF(nn.Module):
         for i in range(self.num_hierarchies):
             out.append(self._modules['LocEnc' + str(i)](location))
 
-        location_features = torch.cat(out, dim=0) # (hierarchies, batch, 512)
+        location_features = torch.stack(out, dim=0) # (hierarchies, batch, 512)
         return location_features
