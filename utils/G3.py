@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import itertools
 from transformers import CLIPTokenizer, CLIPImageProcessor, CLIPModel
-from locationencoder import LocationEncoder
+from .locationencoder import LocationEncoder
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from .rff.layers import GaussianEncoding
 from pyproj import Proj, Transformer
