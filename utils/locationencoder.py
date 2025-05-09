@@ -71,8 +71,7 @@ class LocationEncoder(nn.Module):
         self.neural_network = nn.ModuleList([
             get_neural_network(
                 neural_network_type,
-                input_dim=dim,
-                **kwargs
+                input_dim=dim
             ) for dim in self.position_encoder.embedding_dims
         ])
 
