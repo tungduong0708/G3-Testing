@@ -71,7 +71,9 @@ class LocationEncoder(nn.Module):
             location = [[y, x] for x, y in zip(*projected)]
             location = torch.Tensor(location).to(input.device)
 
+        print(location.shape)
         location = location / self.normalizer
+        print(location.shape)
         location_features = torch.zeros(location.shape[0], 512).to(input.device)
 
         for i in range(self.n):
