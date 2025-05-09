@@ -58,6 +58,7 @@ class LocationEncoder(nn.Module):
         self.transformer = Transformer.from_proj(proj_wgs84, proj_target, always_xy=True)
 
     def forward(self, input):
+        print(input.shape)
         lat = input[:, 0].float().detach().cpu().numpy()
         lon = input[:, 1].float().detach().cpu().numpy()
         projected = self.transformer.transform(lon, lat)
