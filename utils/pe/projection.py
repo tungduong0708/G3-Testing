@@ -39,7 +39,6 @@ class Projection(nn.Module):
         lon = input[:, 1].float().detach().cpu().numpy()
         # lon (batch), lat (batch)
 
-
         # Shape: (batch, 2) or (batch, 3) depending on projection
         if self.projection == "ecef":
             alt = np.zeros_like(lat)

@@ -43,13 +43,14 @@ class ProjectionRFF(nn.Module):
         lon = input[:, 1].float().detach().cpu().numpy()
         # lon (batch), lat (batch)
 
-        projected = self.transformer.transform(lon, lat)
-
         # Shape: (batch, 2) or (batch, 3) depending on projection
         if self.projection == "ecef":
+            alt = np.zeros_like(lat)
+            projected = self.transformer.transform(lon, lat, alt)
             location = list(zip(*projected))  # X, Y, Z
             location = torch.Tensor(location).to(input.device)
         else:
+            projected = self.transformer.transform(lon, lat)
             location = [[y, x] for x, y in zip(*projected)]
             location = torch.Tensor(location).to(input.device)
 
