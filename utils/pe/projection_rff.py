@@ -48,10 +48,10 @@ class ProjectionRFF(nn.Module):
         # Shape: (batch, 2) or (batch, 3) depending on projection
         if self.projection == "ecef":
             location = list(zip(*projected))  # X, Y, Z
-            location = torch.Tensor(location).to(input.device)
+            # location = torch.Tensor(location).to(input.device)
         else:
             location = [[y, x] for x, y in zip(*projected)]
-            location = torch.Tensor(location).to(input.device)
+            # location = torch.Tensor(location).to(input.device)
 
         location = location / self.normalizer
         # location_features = torch.zeros(location.shape[0], 512).to(input.device)
