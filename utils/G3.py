@@ -122,6 +122,10 @@ class G3(torch.nn.Module):
         this_batch_locations = torch.stack((latitude, longitude), dim=1)
         location_embeds = self.location_encoder(this_batch_locations)
 
+        print("image_embeds", image_embeds.shape)
+        print("text_embeds", text_embeds.shape)
+        print("location_embeds", location_embeds.shape)
+
         # phase _1
         image_embeds_1 = self.vision_projection_else_1(image_embeds)
         text_embeds_1 = self.text_projection_else(text_embeds.reshape(text_embeds.shape[0], -1))
