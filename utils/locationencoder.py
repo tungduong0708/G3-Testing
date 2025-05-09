@@ -66,7 +66,7 @@ class LocationEncoder(nn.Module):
             get_neural_network(
                 neural_network_type,
                 input_dim=dim
-            ) for dim in self.position_encoder.embedding_dims
+            ) for dim in self.position_encoder.embedding_dim
         ])
 
     def forward(self, x):
