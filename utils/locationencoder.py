@@ -4,7 +4,9 @@ import numpy as np
 
 from utils.pe.projection_rff import ProjectionRFF
 from utils.pe.spherical_harmonics import SphericalHarmonics
+from utils.pe.projection import Projection
 from utils.nn.mlp import MLP
+from utils.nn.rff_mlp import RFFMLP
 from utils.nn.siren import SirenNet
 
 def get_positional_encoding(positional_encoding_type, **kwargs):
@@ -20,8 +22,10 @@ def get_positional_encoding(positional_encoding_type, **kwargs):
     Returns:
         nn.Module: The positional encoding module.
     """
-    if positional_encoding_type == "rff":
+    if positional_encoding_type == "projectionrff":
         return ProjectionRFF(**kwargs)
+    elif positional_encoding_type == "projection":
+        return Projection(**kwargs)
     elif positional_encoding_type == "sh":
         return SphericalHarmonics(**kwargs)
     else:
@@ -50,12 +54,17 @@ def get_neural_network(neural_network_type, input_dim, **kwargs):
             input_dim=input_dim, 
             **kwargs
         )
+    elif neural_network_type == "rffmlp":
+        return RFFMLP(
+            input_dim=input_dim, 
+            **kwargs
+        )
     else:
         raise ValueError(f"Unsupported network type: {neural_network_type}")
     
 
 class LocationEncoder(nn.Module):
-    def __init__(self, position_encoding_type="rff", neural_network_type="mlp", **kwargs):
+    def __init__(self, position_encoding_type="rff", neural_network_type="siren", **kwargs):
         super().__init__()
 
         self.position_encoder = get_positional_encoding(
@@ -73,7 +82,7 @@ class LocationEncoder(nn.Module):
         embedding = self.position_encoder(x)
         
         if embedding.ndim == 2:
-            # If the embedding is 2D, we need to add a dimension
+            # If the embedding is (batch, n), we need to add a dimension
             embedding = embedding.unsqueeze(0)
 
         location_features = torch.zeros(embedding.shape[1], 512).to(x.device)
