@@ -50,4 +50,5 @@ class Projection(nn.Module):
             location = torch.Tensor(location).to(input.device)
 
         location = location / self.normalizer
+        print(location.shape)
         return location
