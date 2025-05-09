@@ -31,7 +31,7 @@ class LocationEncoderCapsule(nn.Module):
         return x
 
 class CustomLocationEncoder(nn.Module):
-    def __init__(self, sigma=[2**0, 2**4, 2**8], projection="mercator"):
+    def __init__(self, sigma=[2**0, 2**4, 2**8], projection="ecef"):
         super(CustomLocationEncoder, self).__init__()
 
         self.sigma = sigma
