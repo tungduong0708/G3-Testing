@@ -44,11 +44,11 @@ class Projection(nn.Module):
             alt = np.zeros_like(lat)
             projected = self.transformer.transform(lon, lat, alt)
             location = list(zip(*projected))  # X, Y, Z
-            location = torch.Tensor(location).to(input.device)
+            location = torch.Tensor(location).to('cuda')
         else:
             projected = self.transformer.transform(lon, lat)
             location = [[y, x] for x, y in zip(*projected)]
-            location = torch.Tensor(location).to(input.device)
+            location = torch.Tensor(location).to('cuda')
 
         location = location / self.normalizer
         return location
