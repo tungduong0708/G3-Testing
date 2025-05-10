@@ -30,7 +30,7 @@ class RFFMLP(nn.Module):
             self.add_module('LocEnc' + str(i), LocationEncoderCapsule(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, sigma=s))
 
     def forward(self, input):
-        location_features = torch.zeros(input.shape[0], 512).to(input.device)
+        location_features = torch.zeros(input.shape[0], 512).to('cuda')
 
         for i in range(self.num_hierarchies):
             location_features += self._modules['LocEnc' + str(i)](input)
