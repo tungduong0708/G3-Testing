@@ -19,24 +19,25 @@ class ProjectionRFF(nn.Module):
         self.projection = projection.lower()
         self.embedding_dim = [512] * self.num_hierarchies
 
-        for i, s in enumerate(self.sigma):
-            self.add_module('LocEnc' + str(i), GaussianEncoding(sigma=s, input_size=2, encoded_size=256))
-
         proj_wgs84 = Proj('epsg:4326')
-
         if self.projection == "mercator":
             proj_target = Proj('epsg:3857')
+            input_dim = 2
             self.normalizer = 20037508.3427892
         elif self.projection == "eep":
             proj_target = Proj('epsg:8857')
+            input_dim = 2
             self.normalizer = 180/SF 
         elif self.projection == "ecef":
             proj_target = Proj('epsg:4978')
+            input_dim = 3
             self.normalizer = 6378137.0  # radius of Earth, not exact for ECEF but usable
         else:
             raise ValueError(f"Unsupported projection: {self.projection}")
 
         self.transformer = Transformer.from_proj(proj_wgs84, proj_target, always_xy=True)
+        for i, s in enumerate(self.sigma):
+            self.add_module('LocEnc' + str(i), GaussianEncoding(sigma=s, input_size=input_dim, encoded_size=256))
 
     def forward(self, input):
         lat = input[:, 0].float().detach().cpu().numpy()
