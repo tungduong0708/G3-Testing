@@ -12,9 +12,9 @@ from pyproj import Proj, Transformer
 SF = 66.50336
 
 class LocationEncoderCapsule(nn.Module):
-    def __init__(self, sigma):
+    def __init__(self, sigma, input_dim):
         super(LocationEncoderCapsule, self).__init__()
-        rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=256)
+        rff_encoding = GaussianEncoding(sigma=sigma, input_size=input_dim, encoded_size=256)
         self.km = sigma
         self.capsule = nn.Sequential(rff_encoding,
                                      nn.Linear(512, 1024),
@@ -31,31 +31,33 @@ class LocationEncoderCapsule(nn.Module):
         return x
 
 class CustomLocationEncoder(nn.Module):
-    def __init__(self, sigma=[2**0, 2**4, 2**8], projection="mercator"):
+    def __init__(self, sigma=[2**0, 2**4, 2**8], projection="ecef"):
         super(CustomLocationEncoder, self).__init__()
 
         self.sigma = sigma
         self.n = len(self.sigma)
         self.projection = projection.lower()
 
-        for i, s in enumerate(self.sigma):
-            self.add_module('LocEnc' + str(i), LocationEncoderCapsule(sigma=s))
-
         proj_wgs84 = Proj('epsg:4326')
 
         if self.projection == "mercator":
             proj_target = Proj('epsg:3857')
+            input_dim = 2
             self.normalizer = 20037508.3427892
         elif self.projection == "eep":
             proj_target = Proj('epsg:8857')
+            input_dim = 2
             self.normalizer = 180/SF 
         elif self.projection == "ecef":
             proj_target = Proj('epsg:4978')
+            input_dim = 3
             self.normalizer = 6378137.0  # radius of Earth, not exact for ECEF but usable
         else:
             raise ValueError(f"Unsupported projection: {self.projection}")
 
         self.transformer = Transformer.from_proj(proj_wgs84, proj_target, always_xy=True)
+        for i, s in enumerate(self.sigma):
+            self.add_module('LocEnc' + str(i), LocationEncoderCapsule(sigma=s, input_dim=input_dim))
 
     def forward(self, input):
         lat = input[:, 0].float().detach().cpu().numpy()
