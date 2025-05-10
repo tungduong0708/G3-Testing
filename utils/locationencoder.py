@@ -85,7 +85,7 @@ class LocationEncoder(nn.Module):
             # If the embedding is (batch, n), we need to add a dimension
             embedding = embedding.unsqueeze(0)
 
-        location_features = torch.zeros(embedding.shape[1], 512).to(x.device)
+        location_features = torch.zeros(embedding.shape[1], 512).to('cuda')
 
         for nn, e in zip(self.neural_network, embedding):
             location_features += nn(e)
