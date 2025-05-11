@@ -235,7 +235,7 @@ class ZeroShotPredictor(nn.Module):
 def main():
     # Initialize predictor
     predictor = ZeroShotPredictor(
-        model_path='g3_9_.pth',  # Path to your model
+        model_path='g3_5_.pth',  # Path to your model
         device='cuda' if torch.cuda.is_available() else 'cpu'
     )
 
